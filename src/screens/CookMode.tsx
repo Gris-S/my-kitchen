@@ -3,6 +3,7 @@ import { useApp } from '../App'
 import { api, type Recipe } from '../api'
 import { scaleQuantity } from '../scale'
 import { splitSteps } from '../steps'
+import { t } from '../i18n'
 
 /** Mode recette : plein écran, une étape à la fois, gros texte, on avance d'un
  *  geste (bouton, glisser, flèches du clavier). Étape 0 = les ingrédients. */
@@ -51,7 +52,7 @@ export default function CookMode({ id, factor = 1 }: { id: number; factor?: numb
     return () => removeEventListener('keydown', onKey)
   })
 
-  if (!r) return <div className="cook center muted">Chargement…</div>
+  if (!r) return <div className="cook center muted">{t('Chargement…', 'Loading…')}</div>
 
   const toggle = (itemId: number) =>
     setDone((d) => {
@@ -86,13 +87,13 @@ export default function CookMode({ id, factor = 1 }: { id: number; factor?: numb
       }}
     >
       <header className="cook-head">
-        <a className="icon-btn" href={`#/recette/${id}`} aria-label="Quitter le mode recette">
+        <a className="icon-btn" href={`#/recette/${id}`} aria-label={t('Quitter le mode recette', 'Leave cooking mode')}>
           ✕
         </a>
         <div className="cook-title">{r.name}</div>
         {i > 0 && (
           <button className="btn small-btn" onClick={() => setShowIngredients((s) => !s)}>
-            Ingrédients
+            {t('Ingrédients', 'Ingredients')}
           </button>
         )}
       </header>
@@ -103,14 +104,14 @@ export default function CookMode({ id, factor = 1 }: { id: number; factor?: numb
       <main className="cook-body" aria-live="polite">
         {i === 0 ? (
           <>
-            <div className="cook-label">Avant de commencer</div>
+            <div className="cook-label">{t('Avant de commencer', 'Before you start')}</div>
             {intro && <p className="cook-intro">{intro}</p>}
-            {r.items.length ? ingredients : <p className="muted">Aucun ingrédient noté.</p>}
+            {r.items.length ? ingredients : <p className="muted">{t('Aucun ingrédient noté.', 'No ingredients listed.')}</p>}
           </>
         ) : i <= steps.length ? (
           <>
             <div className="cook-label">
-              Étape {i} sur {steps.length}
+              {t(`Étape ${i} sur ${steps.length}`, `Step ${i} of ${steps.length}`)}
             </div>
             {steps[i - 1].title && <h2 className="cook-step-title">{steps[i - 1].title}</h2>}
             <p className="cook-step">{steps[i - 1].text}</p>
@@ -118,18 +119,18 @@ export default function CookMode({ id, factor = 1 }: { id: number; factor?: numb
         ) : (
           <div className="cook-end">
             <div className="cook-emoji">🍽️</div>
-            <p className="cook-step">Bon appétit !</p>
+            <p className="cook-step">{t('Bon appétit !', 'Enjoy your meal!')}</p>
           </div>
         )}
         {steps.length === 0 && i === 0 && (
-          <p className="muted">Cette recette n’a pas encore d’étapes : ajoute-les dans « Modifier ».</p>
+          <p className="muted">{t('Cette recette n’a pas encore d’étapes : ajoute-les dans « Modifier ».', 'This recipe has no steps yet: add them with “Edit”.')}</p>
         )}
       </main>
 
       {showIngredients && i > 0 && (
         <div className="cook-sheet" onClick={() => setShowIngredients(false)}>
           <div className="cook-sheet-inner" onClick={(e) => e.stopPropagation()}>
-            <div className="cook-label">Ingrédients</div>
+            <div className="cook-label">{t('Ingrédients', 'Ingredients')}</div>
             {ingredients}
           </div>
         </div>
@@ -137,15 +138,15 @@ export default function CookMode({ id, factor = 1 }: { id: number; factor?: numb
 
       <footer className="cook-foot">
         <button className="btn cook-nav" onClick={prev} disabled={i === 0}>
-          ‹ Précédent
+          ‹ {t('Précédent', 'Previous')}
         </button>
         {i <= steps.length ? (
           <button className="btn primary cook-nav" onClick={next} disabled={steps.length === 0}>
-            {i === 0 ? 'Commencer' : i === steps.length ? 'Terminer' : 'Suivant ›'}
+            {i === 0 ? t('Commencer', 'Start') : i === steps.length ? t('Terminer', 'Finish') : `${t('Suivant', 'Next')} ›`}
           </button>
         ) : (
           <a className="btn primary cook-nav" href={`#/recette/${id}`}>
-            Fermer
+            {t('Fermer', 'Close')}
           </a>
         )}
       </footer>

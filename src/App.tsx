@@ -7,6 +7,7 @@ import Planning from './screens/Planning'
 import RecipeEditor from './screens/RecipeEditor'
 import RecipeView from './screens/RecipeView'
 import Recipes from './screens/Recipes'
+import { t, setLang, lang } from './i18n'
 
 type Ctx = {
   hh: number
@@ -28,10 +29,10 @@ const useHash = () => {
 }
 
 const TABS = [
-  { hash: '#/courses', label: 'Courses', icon: '🛒' },
-  { hash: '#/recettes', label: 'Recettes', icon: '📖' },
-  { hash: '#/frigo', label: 'Frigo', icon: '🧊' },
-  { hash: '#/planning', label: 'Planning', icon: '📅' },
+  { hash: '#/courses', label: t('Courses', 'Shopping'), icon: '🛒' },
+  { hash: '#/recettes', label: t('Recettes', 'Recipes'), icon: '📖' },
+  { hash: '#/frigo', label: t('Frigo', 'Fridge'), icon: '🧊' },
+  { hash: '#/planning', label: t('Planning', 'Planner'), icon: '📅' },
 ]
 
 export default function App() {
@@ -44,14 +45,24 @@ export default function App() {
     setFatal(null)
     api
       .households()
-      .then((hs) => (hs.length ? setHousehold(hs[0]) : setFatal("Aucun foyer n'existe dans KitchenOwl.")))
+      .then((hs) => {
+        if (!hs.length) return setFatal(t("Aucun foyer n'existe dans KitchenOwl.", 'There is no household in KitchenOwl yet.'))
+        // Foyer choisi sur cet appareil (mk-household), sinon le premier.
+        let wanted = NaN
+        try {
+          wanted = Number(localStorage.getItem('mk-household'))
+        } catch {
+          // stockage indisponible
+        }
+        setHousehold(hs.find((h) => h.id === wanted) ?? hs[0])
+      })
       .catch((e: Error) => setFatal(e.message))
   }, [])
   useEffect(load, [load])
 
   const notify = useCallback((msg: string, kind: 'error' | 'ok' = 'error') => {
     setToast({ msg, kind })
-    setTimeout(() => setToast((t) => (t?.msg === msg ? null : t)), kind === 'error' ? 6000 : 2500)
+    setTimeout(() => setToast((cur) => (cur?.msg === msg ? null : cur)), kind === 'error' ? 6000 : 2500)
   }, [])
   const go = useCallback((h: string) => {
     location.hash = h
@@ -62,11 +73,11 @@ export default function App() {
       <div className="center">
         <p className="error-text">{fatal}</p>
         <button className="btn primary" onClick={load}>
-          Réessayer
+          {t('Réessayer', 'Try again')}
         </button>
       </div>
     )
-  if (!household) return <div className="center muted">Chargement…</div>
+  if (!household) return <div className="center muted">{t('Chargement…', 'Loading…')}</div>
 
   const [path, query = ''] = hash.split('?')
   const [, section, id, action] = path.split('/')
@@ -97,6 +108,14 @@ export default function App() {
               {t.label}
             </a>
           ))}
+          <button
+            className="lang-switch"
+            onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
+            aria-label={t('Passer en anglais', 'Switch to French')}
+            title={t('Passer en anglais', 'Switch to French')}
+          >
+            {lang === 'fr' ? 'EN' : 'FR'}
+          </button>
         </nav>
         <main className="content">{screen}</main>
         {toast && (

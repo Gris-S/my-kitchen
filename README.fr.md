@@ -2,7 +2,7 @@
 
 # MY KITCHEN
 
-**Une interface sans connexion, en français et faite pour le téléphone, pour ton [KitchenOwl](https://github.com/TomBursch/kitchenowl) auto-hébergé.**
+**Une interface sans connexion, en français ou en anglais, faite pour le téléphone, pour ton [KitchenOwl](https://github.com/TomBursch/kitchenowl) auto-hébergé.**
 
 Liste de courses, recettes, import depuis un lien, planning, mode recette pas à
 pas et « qu'est-ce que je cuisine avec ce que j'ai ? » — par-dessus le serveur
@@ -13,10 +13,10 @@ KitchenOwl que tu as déjà. Tes données restent dans KitchenOwl.
 
 *English: [README.md](README.md)*
 
-<img src="docs/screens/courses.png" width="200" alt="Liste de courses">
-<img src="docs/screens/recettes.png" width="200" alt="Recettes">
-<img src="docs/screens/frigo.png" width="200" alt="Frigo">
-<img src="docs/screens/cuisine.png" width="200" alt="Mode recette">
+<img src="docs/screens/fr/courses.png" width="200" alt="Liste de courses">
+<img src="docs/screens/fr/recettes.png" width="200" alt="Recettes">
+<img src="docs/screens/fr/frigo.png" width="200" alt="Frigo">
+<img src="docs/screens/fr/cuisine.png" width="200" alt="Mode recette">
 
 </div>
 
@@ -60,17 +60,18 @@ de tous les jours.
 | 👩‍🍳 **Mode recette** | Plein écran, une étape par page en gros, on glisse ou on utilise les flèches, ingrédients à cocher, intertitres gardés comme titres d'étape. |
 | 🧊 **Frigo** | Une tuile (avec emoji) par ingrédient de tes recettes, de A à Z, avec un filtre. Tu touches ce que tu as : les recettes apparaissent, les plus complètes d'abord, avec ce qui manque et un bouton pour l'ajouter aux courses. Sel, poivre, eau et huile sont supposés toujours là. |
 | 📅 **Planning** | Les 7 prochains jours, on ajoute ou retire des repas. |
-| 📱 **Partout** | Téléphone et ordinateur, mode clair et sombre, en français. |
+| 🌍 **Français ou anglais** | Un appui sur **FR / EN** dans la barre d'onglets ; à la première visite, la langue du navigateur. Les recettes dans l'autre langue sont traduites automatiquement (de l'anglais vers le français, les mesures américaines sont aussi converties). |
+| 📱 **Partout** | Téléphone et ordinateur, mode clair et sombre. |
 
 ## Captures
 
 | Courses | Recettes | Recette et portions | Mode recette |
 | :---: | :---: | :---: | :---: |
-| <img src="docs/screens/courses.png" width="190"> | <img src="docs/screens/recettes.png" width="190"> | <img src="docs/screens/recette.png" width="190"> | <img src="docs/screens/cuisine.png" width="190"> |
+| <img src="docs/screens/fr/courses.png" width="190"> | <img src="docs/screens/fr/recettes.png" width="190"> | <img src="docs/screens/fr/recette.png" width="190"> | <img src="docs/screens/fr/cuisine.png" width="190"> |
 | **Frigo — tuiles** | **Frigo — résultats** | **Planning** | **Import depuis un lien** |
-| <img src="docs/screens/frigo.png" width="190"> | <img src="docs/screens/frigo-resultats.png" width="190"> | <img src="docs/screens/planning.png" width="190"> | <img src="docs/screens/importer.png" width="190"> |
+| <img src="docs/screens/fr/frigo.png" width="190"> | <img src="docs/screens/fr/frigo-resultats.png" width="190"> | <img src="docs/screens/fr/planning.png" width="190"> | <img src="docs/screens/fr/importer.png" width="190"> |
 
-*Données de démonstration, format téléphone, mode sombre.*
+*Données de démonstration, format téléphone, mode sombre. Photos : Wikimedia Commons, voir les [crédits](docs/screens/CREDITS.md).*
 
 ## Comment ça marche
 

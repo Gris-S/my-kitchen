@@ -3,8 +3,9 @@ import { useApp } from '../App'
 import { api, photoUrl, type Recipe } from '../api'
 import { localDayToUtc, todayInput } from '../dates'
 import { scaleQuantity } from '../scale'
-import { isEnglish, translateRecipe } from '../translate'
+import { detectLang, translateRecipe } from '../translate'
 import { minutes } from './Recipes'
+import { lang, plural, t } from '../i18n'
 
 export default function RecipeView({ id }: { id: number }) {
   const { hh, list, notify, go } = useApp()
@@ -12,7 +13,7 @@ export default function RecipeView({ id }: { id: number }) {
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const [planDate, setPlanDate] = useState(todayInput())
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [english, setEnglish] = useState(false)
+  const [foreign, setForeign] = useState(false) // recette dans l'autre langue que l'interface
   const [translating, setTranslating] = useState(false)
   const [people, setPeople] = useState<number | null>(null) // null = comme la recette
 
@@ -21,13 +22,13 @@ export default function RecipeView({ id }: { id: number }) {
       (rec) => {
         setR(rec)
         setPicked(new Set(rec.items.filter((i) => !i.optional).map((i) => i.id)))
-        isEnglish(`${rec.name}\n${rec.description ?? ''}`).then(setEnglish)
+        detectLang(`${rec.name}\n${rec.description ?? ''}`).then((l) => setForeign(!!l && l !== lang))
       },
       (e: Error) => notify(e.message),
     )
   }, [id, notify])
 
-  if (!r) return <div className="page muted">Chargement…</div>
+  if (!r) return <div className="page muted">{t('Chargement…', 'Loading…')}</div>
 
   const toggle = (itemId: number) =>
     setPicked((p) => {
@@ -49,7 +50,7 @@ export default function RecipeView({ id }: { id: number }) {
         list,
         r.items.filter((i) => picked.has(i.id)).map((i) => ({ ...i, description: qty(i.description) })),
       )
-      notify(`${picked.size} ingrédient(s) ajouté(s) à la liste`, 'ok')
+      notify(t(`${picked.size} ingrédient(s) ajouté(s) à la liste`, `${picked.size} ingredient(s) added to the list`), 'ok')
     } catch (e) {
       notify((e as Error).message)
     }
@@ -58,7 +59,7 @@ export default function RecipeView({ id }: { id: number }) {
   const plan = async () => {
     try {
       await api.plan(hh, r.id, localDayToUtc(planDate))
-      notify('Ajoutée au planning', 'ok')
+      notify(t('Ajoutée au planning', 'Added to the planner'), 'ok')
     } catch (e) {
       notify((e as Error).message)
     }
@@ -67,16 +68,16 @@ export default function RecipeView({ id }: { id: number }) {
   const translate = async () => {
     setTranslating(true)
     try {
-      const fr = await translateRecipe({
+      const done = await translateRecipe({
         name: r.name,
         description: r.description ?? '',
         items: r.items.map((i) => ({ name: i.name, description: i.description ?? '', optional: i.optional ?? false })),
-      })
-      setR(await api.updateRecipe(r.id, fr))
-      setEnglish(false)
-      notify('Recette traduite en français', 'ok')
+      }, lang)
+      setR(await api.updateRecipe(r.id, done))
+      setForeign(false)
+      notify(t('Recette traduite en français', 'Recipe translated to English'), 'ok')
     } catch (e) {
-      notify(`Traduction impossible : ${(e as Error).message}`)
+      notify(`${t('Traduction impossible :', 'Translation failed:')} ${(e as Error).message}`)
     } finally {
       setTranslating(false)
     }
@@ -85,7 +86,7 @@ export default function RecipeView({ id }: { id: number }) {
   const remove = async () => {
     try {
       await api.deleteRecipe(r.id)
-      notify('Recette supprimée', 'ok')
+      notify(t('Recette supprimée', 'Recipe deleted'), 'ok')
       go('#/recettes')
     } catch (e) {
       notify((e as Error).message)
@@ -104,12 +105,12 @@ export default function RecipeView({ id }: { id: number }) {
   return (
     <div className="page">
       <a className="back" href="#/recettes">
-        ‹ Recettes
+        ‹ {t('Recettes', 'Recipes')}
       </a>
       {img && <img className="hero" src={img} alt="" />}
       <h1>{r.name}</h1>
       <p className="muted">
-        {[m && `${m} min`, r.yields && `${r.yields} personnes`].filter(Boolean).join(' · ')}
+        {[m && `${m} min`, r.yields && `${r.yields} ${t('personnes', 'servings')}`].filter(Boolean).join(' · ')}
         {host && (
           <>
             {' · '}
@@ -122,37 +123,37 @@ export default function RecipeView({ id }: { id: number }) {
 
       <div className="actions">
         <a className="btn primary" href={`#/recette/${r.id}/cuisine${factor !== 1 ? `?x=${factor}` : ''}`}>
-          👩‍🍳 Mode recette
+          👩‍🍳 {t('Mode recette', 'Cooking mode')}
         </a>
-        {english && (
+        {foreign && (
           <button className="btn" onClick={translate} disabled={translating}>
-            {translating ? 'Traduction…' : '🇫🇷 Traduire en français'}
+            {translating ? t('Traduction…', 'Translating…') : t('🇫🇷 Traduire en français', '🇬🇧 Translate to English')}
           </button>
         )}
       </div>
 
       <section className="card">
         <div className="card-title-row">
-          <h2 className="card-title">Ingrédients</h2>
-          <div className="stepper" role="group" aria-label="Nombre de personnes">
-            <button className="icon-btn" onClick={() => setPeople(Math.max(1, count - 1))} disabled={count <= 1} aria-label="Une personne de moins">
+          <h2 className="card-title">{t('Ingrédients', 'Ingredients')}</h2>
+          <div className="stepper" role="group" aria-label={t('Nombre de personnes', 'Servings')}>
+            <button className="icon-btn" onClick={() => setPeople(Math.max(1, count - 1))} disabled={count <= 1} aria-label={t('Une personne de moins', 'One serving less')}>
               −
             </button>
-            <span className={factor !== 1 ? 'changed' : ''}>{r.yields ? `${count} pers.` : `× ${count}`}</span>
-            <button className="icon-btn" onClick={() => setPeople(count + 1)} aria-label="Une personne de plus">
+            <span className={factor !== 1 ? 'changed' : ''}>{r.yields ? `${count} ${t('pers.', 'serv.')}` : `× ${count}`}</span>
+            <button className="icon-btn" onClick={() => setPeople(count + 1)} aria-label={t('Une personne de plus', 'One serving more')}>
               +
             </button>
           </div>
         </div>
         {factor !== 1 && (
           <p className="muted small pad-x">
-            Quantités recalculées (recette prévue {r.yields ? `pour ${base}` : 'telle quelle'}).{' '}
+            {t('Quantités recalculées', 'Quantities adjusted')} ({r.yields ? t(`recette prévue pour ${base}`, `recipe is for ${base}`) : t('recette telle quelle', 'original recipe')}).{' '}
             <button className="link-btn" onClick={() => setPeople(null)}>
-              Revenir
+              {t('Revenir', 'Reset')}
             </button>
           </p>
         )}
-        {r.items.length === 0 && <p className="muted pad">Aucun ingrédient.</p>}
+        {r.items.length === 0 && <p className="muted pad">{t('Aucun ingrédient.', 'No ingredients.')}</p>}
         {r.items.map((i) => (
           <label key={i.id} className="row">
             <input type="checkbox" checked={picked.has(i.id)} onChange={() => toggle(i.id)} />
@@ -163,7 +164,7 @@ export default function RecipeView({ id }: { id: number }) {
         {r.items.length > 0 && (
           <div className="card-foot">
             <button className="btn primary wide" disabled={!picked.size} onClick={addToList}>
-              Ajouter {picked.size} ingrédient{picked.size > 1 ? 's' : ''} à la liste
+              {t(`Ajouter ${plural(picked.size, 'ingrédient', 'ingredient')} à la liste`, `Add ${plural(picked.size, 'ingrédient', 'ingredient')} to the list`)}
             </button>
           </div>
         )}
@@ -171,37 +172,37 @@ export default function RecipeView({ id }: { id: number }) {
 
       {r.description && (
         <section className="card">
-          <h2 className="card-title">Préparation</h2>
+          <h2 className="card-title">{t('Préparation', 'Method')}</h2>
           <div className="steps">{r.description}</div>
         </section>
       )}
 
       <section className="card">
-        <h2 className="card-title">Planifier</h2>
+        <h2 className="card-title">{t('Planifier', 'Plan it')}</h2>
         <div className="inline-form">
-          <input type="date" value={planDate} onChange={(e) => setPlanDate(e.target.value)} aria-label="Jour" />
+          <input type="date" value={planDate} onChange={(e) => setPlanDate(e.target.value)} aria-label={t('Jour', 'Day')} />
           <button className="btn" onClick={plan}>
-            Ajouter au planning
+            {t('Ajouter au planning', 'Add to planner')}
           </button>
         </div>
       </section>
 
       <div className="actions">
         <a className="btn" href={`#/recette/${r.id}/modifier`}>
-          Modifier
+          {t('Modifier', 'Edit')}
         </a>
         {confirmDelete ? (
           <>
             <button className="btn danger" onClick={remove}>
-              Supprimer vraiment
+              {t('Supprimer vraiment', 'Really delete')}
             </button>
             <button className="btn" onClick={() => setConfirmDelete(false)}>
-              Annuler
+              {t('Annuler', 'Cancel')}
             </button>
           </>
         ) : (
           <button className="btn danger-text" onClick={() => setConfirmDelete(true)}>
-            Supprimer
+            {t('Supprimer', 'Delete')}
           </button>
         )}
       </div>

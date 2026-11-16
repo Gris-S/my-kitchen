@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useApp } from '../App'
 import { api, photoUrl, rescuePhoto, uploadPhoto, type RecipeInput, type ScrapeResult } from '../api'
 import { parseIngredient } from '../ingredients'
-import { isEnglish, translateRecipe } from '../translate'
+import { detectLang, translateRecipe } from '../translate'
+import { lang, t } from '../i18n'
 
 type Row = { key: number; name: string; description: string; optional: boolean }
 type Draft = Omit<RecipeInput, 'items'> & { items: Row[] }
@@ -40,7 +41,7 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
   const [reading, setReading] = useState(false)
   const [readError, setReadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [original, setOriginal] = useState<Draft | null>(null) // version anglaise, si traduite
+  const [original, setOriginal] = useState<Draft | null>(null) // version d'origine, si traduite
   const [translated, setTranslated] = useState<Draft | null>(null)
   const [uploading, setUploading] = useState(false)
 
@@ -72,22 +73,24 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
     try {
       const d = draftFromScrape(await api.scrape(hh, url.trim()))
       setDraft(d)
-      // Recette en anglais : traduite et convertie en mesures françaises d'office.
-      if (await isEnglish(`${d.name}\n${d.description}`)) {
+      // Recette dans l'autre langue que l'interface : traduite d'office (et, vers le
+      // français, mesures américaines converties).
+      const from = await detectLang(`${d.name}\n${d.description}`)
+      if (from && from !== lang) {
         try {
-          const fr = await translateRecipe(d)
+          const done = await translateRecipe(d, lang)
           setOriginal(d)
-          setTranslated(fr)
-          setDraft(fr)
+          setTranslated(done)
+          setDraft(done)
         } catch {
-          notify("Recette en anglais, mais le traducteur ne répond pas : elle reste en anglais.")
+          notify(t('Le traducteur ne répond pas : la recette reste dans sa langue.', 'The translator is not responding: the recipe stays in its language.'))
         }
       }
     } catch (err) {
       const msg = (err as Error).message
       setReadError(
         /Unsupported website|400/.test(msg)
-          ? "KitchenOwl n'a pas trouvé de recette sur cette page. Vérifie le lien, ou saisis la recette à la main."
+          ? t("KitchenOwl n'a pas trouvé de recette sur cette page. Vérifie le lien, ou saisis la recette à la main.", 'KitchenOwl found no recipe on this page. Check the link, or type the recipe yourself.')
           : msg,
       )
     } finally {
@@ -114,7 +117,7 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
 
   const save = async () => {
     if (!draft) return
-    if (!draft.name.trim()) return notify('Donne un nom à la recette.')
+    if (!draft.name.trim()) return notify(t('Donne un nom à la recette.', 'Give the recipe a name.'))
     const items = draft.items
       .filter((r) => r.name.trim())
       .map(({ name, description, optional }) => ({ name: name.trim(), description: description.trim(), optional }))
@@ -136,8 +139,8 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
         else photoLost = true
       }
       if (photoLost)
-        notify("Recette enregistrée, mais le site n'a pas laissé récupérer sa photo. Ajoute-la avec « Modifier ».")
-      else notify('Recette enregistrée', 'ok')
+        notify(t("Recette enregistrée, mais le site n'a pas laissé récupérer sa photo. Ajoute-la avec « Modifier ».", 'Recipe saved, but the site refused to share its photo. Add it with “Edit”.'))
+      else notify(t('Recette enregistrée', 'Recipe saved'), 'ok')
       go(`#/recette/${saved.id}`)
     } catch (e) {
       notify((e as Error).message)
@@ -146,31 +149,31 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
     }
   }
 
-  const title = recipeId ? 'Modifier la recette' : importMode ? 'Importer une recette' : 'Nouvelle recette'
+  const title = recipeId ? t('Modifier la recette', 'Edit recipe') : importMode ? t('Importer une recette', 'Import a recipe') : t('Nouvelle recette', 'New recipe')
   const img = photoUrl(draft?.photo)
 
   return (
     <div className="page">
       <a className="back" href={recipeId ? `#/recette/${recipeId}` : '#/recettes'}>
-        ‹ Retour
+        ‹ {t('Retour', 'Back')}
       </a>
       <h1>{title}</h1>
 
       {importMode && (
         <form className="card pad" onSubmit={read}>
           <label className="field">
-            <span>Lien de la recette (Marmiton, 750g, blog…)</span>
+            <span>{t('Lien de la recette (Marmiton, 750g, blog…)', 'Recipe link (any recipe site or blog)')}</span>
             <input
               type="url"
               inputMode="url"
               required
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.marmiton.org/recettes/…"
+              placeholder={t('https://www.marmiton.org/recettes/…', 'https://www.example.com/recipe/…')}
             />
           </label>
           <button className="btn primary wide" disabled={reading || !url.trim()}>
-            {reading ? 'Lecture de la page…' : draft ? 'Relire la page' : 'Lire la recette'}
+            {reading ? t('Lecture de la page…', 'Reading the page…') : draft ? t('Relire la page', 'Read again') : t('Lire la recette', 'Read the recipe')}
           </button>
           {readError && <p className="error-text">{readError}</p>}
         </form>
@@ -180,9 +183,9 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
         <>
           {original && translated && (
             <div className="card pad notice">
-              {draft === original ? 'Version originale (anglais).' : 'Traduite de l’anglais, mesures converties.'}{' '}
+              {draft === original ? t('Version originale.', 'Original version.') : t('Traduite automatiquement, mesures converties.', 'Translated automatically.')}{' '}
               <button className="link-btn" onClick={() => setDraft(draft === original ? translated : original)}>
-                {draft === original ? 'Revoir en français' : 'Voir l’original'}
+                {draft === original ? t('Revoir la traduction', 'See the translation') : t('Voir l’original', 'See the original')}
               </button>
             </div>
           )}
@@ -191,7 +194,7 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
               <div className="photo-box">{img ? <img src={img} alt="" /> : <span>🍽️</span>}</div>
               <div className="photo-actions">
                 <label className="btn">
-                  {uploading ? 'Envoi…' : img ? 'Changer la photo' : 'Ajouter une photo'}
+                  {uploading ? t('Envoi…', 'Uploading…') : img ? t('Changer la photo', 'Change photo') : t('Ajouter une photo', 'Add a photo')}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -202,13 +205,13 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
                 </label>
                 {img && (
                   <button className="btn danger-text" onClick={() => set({ photo: '' })}>
-                    Retirer
+                    {t('Retirer', 'Remove')}
                   </button>
                 )}
                 <input
                   type="url"
-                  placeholder="…ou coller l’adresse d’une image"
-                  aria-label="Adresse d’une image"
+                  placeholder={t('…ou coller l’adresse d’une image', '…or paste an image address')}
+                  aria-label={t('Adresse d’une image', 'Image address')}
                   onKeyDown={(e) => {
                     const v = (e.target as HTMLInputElement).value.trim()
                     if (e.key === 'Enter' && /^https?:\/\//.test(v)) {
@@ -223,47 +226,47 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
           </section>
           <div className="card pad">
             <label className="field">
-              <span>Nom</span>
+              <span>{t('Nom', 'Name')}</span>
               <input value={draft.name} onChange={(e) => set({ name: e.target.value })} />
             </label>
             <div className="field-row">
               <label className="field">
-                <span>Préparation (min)</span>
+                <span>{t('Préparation (min)', 'Prep (min)')}</span>
                 <input inputMode="numeric" value={draft.prep_time ?? ''} onChange={(e) => set({ prep_time: num(e.target.value) })} />
               </label>
               <label className="field">
-                <span>Cuisson (min)</span>
+                <span>{t('Cuisson (min)', 'Cooking (min)')}</span>
                 <input inputMode="numeric" value={draft.cook_time ?? ''} onChange={(e) => set({ cook_time: num(e.target.value) })} />
               </label>
               <label className="field">
-                <span>Personnes</span>
+                <span>{t('Personnes', 'Servings')}</span>
                 <input inputMode="numeric" value={draft.yields ?? ''} onChange={(e) => set({ yields: num(e.target.value) })} />
               </label>
             </div>
           </div>
 
           <section className="card">
-            <h2 className="card-title">Ingrédients</h2>
+            <h2 className="card-title">{t('Ingrédients', 'Ingredients')}</h2>
             {draft.items.map((r) => (
               <div key={r.key} className="row edit-row">
                 <input
                   className="grow"
                   value={r.name}
-                  placeholder="Ingrédient"
+                  placeholder={t('Ingrédient', 'Ingredient')}
                   onChange={(e) => setRow(r.key, { name: e.target.value })}
-                  aria-label="Ingrédient"
+                  aria-label={t('Ingrédient', 'Ingredient')}
                 />
                 <input
                   className="qty-field"
                   value={r.description}
-                  placeholder="Quantité"
+                  placeholder={t('Quantité', 'Quantity')}
                   onChange={(e) => setRow(r.key, { description: e.target.value })}
-                  aria-label="Quantité"
+                  aria-label={t('Quantité', 'Quantity')}
                 />
                 <button
                   className="icon-btn"
                   onClick={() => set({ items: draft.items.filter((x) => x.key !== r.key) })}
-                  aria-label={`Retirer ${r.name}`}
+                  aria-label={`${t('Retirer', 'Remove')} ${r.name}`}
                 >
                   ✕
                 </button>
@@ -271,26 +274,26 @@ export default function RecipeEditor({ recipeId, importMode }: { recipeId?: numb
             ))}
             <div className="card-foot">
               <button className="btn" onClick={() => set({ items: [...draft.items, row()] })}>
-                ＋ Ingrédient
+                ＋ {t('Ingrédient', 'Ingredient')}
               </button>
             </div>
           </section>
 
           <section className="card pad">
             <label className="field">
-              <span>Préparation</span>
+              <span>{t('Préparation', 'Method')}</span>
               <textarea rows={10} value={draft.description} onChange={(e) => set({ description: e.target.value })} />
             </label>
           </section>
 
           <div className="actions sticky">
             <button className="btn primary wide" disabled={saving} onClick={save}>
-              {saving ? 'Enregistrement…' : 'Enregistrer la recette'}
+              {saving ? t('Enregistrement…', 'Saving…') : t('Enregistrer la recette', 'Save recipe')}
             </button>
           </div>
         </>
       )}
-      {!draft && recipeId && <p className="muted">Chargement…</p>}
+      {!draft && recipeId && <p className="muted">{t('Chargement…', 'Loading…')}</p>}
     </div>
   )
 }

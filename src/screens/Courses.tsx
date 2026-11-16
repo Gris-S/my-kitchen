@@ -3,6 +3,9 @@ import { useApp } from '../App'
 import { api, type Item } from '../api'
 import { parseIngredient } from '../ingredients'
 import { usePolling } from '../usePolling'
+import { locale, t } from '../i18n'
+
+const OTHER = t('Autres', 'Other')
 
 export default function Courses() {
   const { hh, list, notify } = useApp()
@@ -71,7 +74,7 @@ export default function Courses() {
     try {
       await api.removeItems(list, (items ?? []).map((i) => i.id))
       await refresh()
-      notify('Liste vidée', 'ok')
+      notify(t('Liste vidée', 'List cleared'), 'ok')
     } catch (e) {
       notify((e as Error).message)
     }
@@ -92,12 +95,12 @@ export default function Courses() {
     const map = new Map<string, Item[]>()
     for (const it of items ?? []) {
       if (hidden.has(it.id)) continue
-      const key = it.category?.name ?? 'Autres'
+      const key = it.category?.name ?? OTHER
       map.set(key, [...(map.get(key) ?? []), it])
     }
     return [...map.entries()]
-      .sort(([a], [b]) => (a === 'Autres' ? 1 : b === 'Autres' ? -1 : a.localeCompare(b, 'fr')))
-      .map(([k, v]) => [k, v.sort((x, y) => x.name.localeCompare(y.name, 'fr'))] as const)
+      .sort(([a], [b]) => (a === OTHER ? 1 : b === OTHER ? -1 : a.localeCompare(b, locale)))
+      .map(([k, v]) => [k, v.sort((x, y) => x.name.localeCompare(y.name, locale))] as const)
   }, [items, hidden])
 
   const onList = new Set((items ?? []).map((i) => i.id))
@@ -106,20 +109,20 @@ export default function Courses() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1>Courses</h1>
+        <h1>{t('Courses', 'Shopping')}</h1>
         {!!items?.length &&
           (confirmClear ? (
             <div className="head-actions">
               <button className="btn danger" onClick={clearAll}>
-                Tout retirer ({items.length})
+                {t('Tout retirer', 'Remove all')} ({items.length})
               </button>
               <button className="btn" onClick={() => setConfirmClear(false)}>
-                Annuler
+                {t('Annuler', 'Cancel')}
               </button>
             </div>
           ) : (
             <button className="btn danger-text" onClick={() => setConfirmClear(true)}>
-              Tout retirer
+              {t('Tout retirer', 'Remove all')}
             </button>
           ))}
       </div>
@@ -127,12 +130,12 @@ export default function Courses() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Ajouter… (ex. 2 kg de pommes)"
+          placeholder={t('Ajouter… (ex. 2 kg de pommes)', 'Add… (e.g. 2 kg apples)')}
           enterKeyHint="done"
-          aria-label="Ajouter un article"
+          aria-label={t('Ajouter un article', 'Add an item')}
         />
         <button className="btn primary" disabled={!text.trim()}>
-          Ajouter
+          {t('Ajouter', 'Add')}
         </button>
       </form>
       {suggestions.length > 0 && (
@@ -146,16 +149,16 @@ export default function Courses() {
       )}
 
       {items === null ? (
-        <p className="muted">Chargement…</p>
+        <p className="muted">{t('Chargement…', 'Loading…')}</p>
       ) : groups.length === 0 ? (
-        <p className="empty">La liste est vide.</p>
+        <p className="empty">{t('La liste est vide.', 'The list is empty.')}</p>
       ) : (
         groups.map(([cat, its]) => (
           <section key={cat} className="card">
             <h2 className="card-title">{cat}</h2>
             {its.map((it) => (
               <div key={it.id} className="row">
-                <button className="check" onClick={() => check(it)} aria-label={`Cocher ${it.name}`} />
+                <button className="check" onClick={() => check(it)} aria-label={`${t('Cocher', 'Check off')} ${it.name}`} />
                 <div className="row-main" onClick={() => check(it)}>
                   <span>{it.name}</span>
                 </div>
@@ -166,11 +169,11 @@ export default function Courses() {
                     defaultValue={it.description ?? ''}
                     onBlur={(e) => saveDescription(it, e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                    aria-label={`Quantité de ${it.name}`}
+                    aria-label={`${t('Quantité', 'Quantity')} ${it.name}`}
                   />
                 ) : (
                   <button className="qty" onClick={() => setEditing(it.id)}>
-                    {it.description || '＋ qté'}
+                    {it.description || t('＋ qté', '＋ qty')}
                   </button>
                 )}
               </div>
@@ -181,7 +184,7 @@ export default function Courses() {
 
       {quick.length > 0 && (
         <>
-          <h2 className="section-title">Achetés récemment</h2>
+          <h2 className="section-title">{t('Achetés récemment', 'Recently bought')}</h2>
           <div className="chips">
             {quick.map((r) => (
               <button key={r.id} className="chip" onClick={() => add(r.name, r.description ?? '')}>

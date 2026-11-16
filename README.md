@@ -2,7 +2,7 @@
 
 # MY KITCHEN
 
-**A no-login, French, phone-friendly interface for your self-hosted [KitchenOwl](https://github.com/TomBursch/kitchenowl).**
+**A no-login, phone-friendly interface (English or French) for your self-hosted [KitchenOwl](https://github.com/TomBursch/kitchenowl).**
 
 Shopping list, recipes, recipe import from a link, meal planner, step-by-step
 cooking mode and a "what's in my fridge?" finder — on top of the KitchenOwl
@@ -14,10 +14,10 @@ server you already run. Your data stays in KitchenOwl.
 
 *Français : [README.fr.md](README.fr.md)*
 
-<img src="docs/screens/courses.png" width="200" alt="Shopping list">
-<img src="docs/screens/recettes.png" width="200" alt="Recipes">
-<img src="docs/screens/frigo.png" width="200" alt="Fridge">
-<img src="docs/screens/cuisine.png" width="200" alt="Cooking mode">
+<img src="docs/screens/en/courses.png" width="200" alt="Shopping list">
+<img src="docs/screens/en/recettes.png" width="200" alt="Recipes">
+<img src="docs/screens/en/frigo.png" width="200" alt="Fridge">
+<img src="docs/screens/en/cuisine.png" width="200" alt="Cooking mode">
 
 </div>
 
@@ -60,17 +60,18 @@ KitchenOwl as the server and replaces only the screen you use every day.
 | 👩‍🍳 **Cooking mode** | Full screen, one step per page in large type, swipe or arrow keys, ingredients to tick, section headings kept as step titles. |
 | 🧊 **Fridge** | One tile (with emoji) per ingredient of your saved recipes, A→Z, with a filter. Tap what you have: recipes appear best match first, with what's missing and a button to add it to the list. Salt, pepper, water and oil are assumed. |
 | 📅 **Planner** | The next seven days, add or remove meals. |
-| 📱 **Everywhere** | Responsive (phone and desktop), light and dark mode, in French. |
+| 🌍 **French or English** | One tap on **FR / EN** in the tab bar; first visit follows the browser language. Recipes in the other language are translated automatically (English → French also converts US units). |
+| 📱 **Everywhere** | Responsive (phone and desktop), light and dark mode. |
 
 ## Screenshots
 
 | Shopping list | Recipes | Recipe & servings | Cooking mode |
 | :---: | :---: | :---: | :---: |
-| <img src="docs/screens/courses.png" width="190"> | <img src="docs/screens/recettes.png" width="190"> | <img src="docs/screens/recette.png" width="190"> | <img src="docs/screens/cuisine.png" width="190"> |
+| <img src="docs/screens/en/courses.png" width="190"> | <img src="docs/screens/en/recettes.png" width="190"> | <img src="docs/screens/en/recette.png" width="190"> | <img src="docs/screens/en/cuisine.png" width="190"> |
 | **Fridge — tiles** | **Fridge — results** | **Planner** | **Import from a link** |
-| <img src="docs/screens/frigo.png" width="190"> | <img src="docs/screens/frigo-resultats.png" width="190"> | <img src="docs/screens/planning.png" width="190"> | <img src="docs/screens/importer.png" width="190"> |
+| <img src="docs/screens/en/frigo.png" width="190"> | <img src="docs/screens/en/frigo-resultats.png" width="190"> | <img src="docs/screens/en/planning.png" width="190"> | <img src="docs/screens/en/importer.png" width="190"> |
 
-*Demo data, phone size, dark mode.*
+*Demo data, phone size, dark mode. Photos: Wikimedia Commons, see [credits](docs/screens/CREDITS.md).*
 
 ## How it works
 

@@ -1070,3 +1070,30 @@ label.row {
     transition: none;
   }
 }
+
+/* ---- Bouton de langue FR / EN : dernier élément de la barre d'onglets ---- */
+.lang-switch {
+  flex: none;
+  align-self: center;
+  min-width: 44px;
+  min-height: 32px;
+  margin: 0 8px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--field);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.lang-switch:hover {
+  color: var(--accent);
+}
+
+@media (min-width: 900px) {
+  .lang-switch {
+    align-self: flex-start;
+    margin: auto 12px 0;
+  }
+}

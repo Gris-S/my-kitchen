@@ -27,6 +27,16 @@ test('ingrédients de tes recettes', () => {
   expect(e('Fettuccine')).toBe('🍝')
 })
 
+test('noms anglais', () => {
+  expect(e('Eggs')).toBe('🥚')
+  expect(e('Ground beef')).toBe('🥩')
+  expect(e('Olive oil')).toBe('🫒')
+  expect(e('Potatoes')).toBe('🥔')
+  expect(e('Chicken breast')).toBe('🍗')
+  expect(e('Bell pepper')).toBe('🫑')
+  expect(e('Black pepper')).toBe('🌶️')
+})
+
 test('pas de faux amis', () => {
   expect(e('Mayonnaise')).toBe('🥄') // « ail » ne colle pas au milieu d'un mot
   expect(e('Thym')).toBe('🌿') // « the » ne colle pas à « thym »

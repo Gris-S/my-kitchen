@@ -3,6 +3,7 @@ import { useApp } from '../App'
 import { api, photoUrl, type Recipe } from '../api'
 import { ingredientEmoji } from '../emoji'
 import { buildTiles, norm, rankRecipes } from '../fridge'
+import { plural, t } from '../i18n'
 
 /** Frigo en tuiles : une tuile par ingrédient de tes recettes, de A à Z. Tu
  *  touches ce que tu as, les recettes se classent de la plus complète à la moins
@@ -36,7 +37,7 @@ export default function Fridge() {
   const addMissing = async (missing: string[]) => {
     try {
       for (const name of missing) await api.addItem(list, name)
-      notify(`${missing.length} ingrédient${missing.length > 1 ? 's' : ''} ajouté${missing.length > 1 ? 's' : ''} à la liste`, 'ok')
+      notify(t(`${plural(missing.length, 'ingrédient', 'ingredient')} ajouté${missing.length > 1 ? 's' : ''} à la liste`, `${plural(missing.length, 'ingrédient', 'ingredient')} added to the list`), 'ok')
     } catch (e) {
       notify((e as Error).message)
     }
@@ -44,40 +45,40 @@ export default function Fridge() {
 
   return (
     <div className="page">
-      <h1>Frigo</h1>
-      <p className="muted">Touche ce que tu as : les recettes qui collent le mieux apparaissent en dessous. Sel, poivre, eau et huile sont comptés comme toujours là.</p>
+      <h1>{t('Frigo', 'Fridge')}</h1>
+      <p className="muted">{t('Touche ce que tu as : les recettes qui collent le mieux apparaissent en dessous. Sel, poivre, eau et huile sont comptés comme toujours là.', 'Tap what you have: the best matching recipes show up below. Salt, pepper, water and oil are assumed.')}</p>
 
       <input
         className="search"
         type="search"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        placeholder="Chercher un ingrédient"
-        aria-label="Chercher un ingrédient"
+        placeholder={t('Chercher un ingrédient', 'Search an ingredient')}
+        aria-label={t('Chercher un ingrédient', 'Search an ingredient')}
       />
 
       {picked.size > 0 && (
         <div className="fridge-bar">
           <span>
-            {picked.size} sélectionné{picked.size > 1 ? 's' : ''}
+            {t(`${picked.size} sélectionné${picked.size > 1 ? 's' : ''}`, `${picked.size} selected`)}
           </span>
           {matches.length > 0 && (
             <button className="btn primary small-btn" onClick={() => document.getElementById('frigo-resultats')?.scrollIntoView({ behavior: 'smooth' })}>
-              Voir {matches.length} recette{matches.length > 1 ? 's' : ''}
+              {t('Voir', 'See')} {plural(matches.length, 'recette', 'recipe')}
             </button>
           )}
           <button className="link-btn" onClick={() => setPicked(new Map())}>
-            Tout désélectionner
+            {t('Tout désélectionner', 'Clear selection')}
           </button>
         </div>
       )}
 
       {recipes === null ? (
-        <p className="muted">Chargement…</p>
+        <p className="muted">{t('Chargement…', 'Loading…')}</p>
       ) : tiles.length === 0 ? (
-        <p className="empty">Aucun ingrédient : ajoute d’abord des recettes.</p>
+        <p className="empty">{t('Aucun ingrédient : ajoute d’abord des recettes.', 'No ingredients: add some recipes first.')}</p>
       ) : shown.length === 0 ? (
-        <p className="empty">Aucun ingrédient ne correspond à « {filter} ».</p>
+        <p className="empty">{t('Aucun ingrédient ne correspond à', 'No ingredient matches')} « {filter} ».</p>
       ) : (
         <div className="tile-grid">
           {shown.map((t) => (
@@ -104,10 +105,10 @@ export default function Fridge() {
       {picked.size > 0 && (
         <>
           <h2 className="section-title" id="frigo-resultats">
-            Recettes possibles
+            {t('Recettes possibles', 'Possible recipes')}
           </h2>
           {matches.length === 0 ? (
-            <p className="empty">Aucune recette n’utilise ces ingrédients.</p>
+            <p className="empty">{t('Aucune recette n’utilise ces ingrédients.', 'No recipe uses these ingredients.')}</p>
           ) : (
             matches.map((m) => {
               const img = photoUrl(m.recipe.photo)
@@ -120,8 +121,8 @@ export default function Fridge() {
                       <div className="recipe-name">{m.recipe.name}</div>
                       <div className={`fridge-score ${pct === 100 ? 'full' : ''}`}>
                         {pct === 100
-                          ? 'Tu as tout !'
-                          : `Tu as ${m.have.length} ingrédient${m.have.length > 1 ? 's' : ''} sur ${m.have.length + m.missing.length}`}
+                          ? t('Tu as tout !', 'You have everything!')
+                          : t(`Tu as ${m.have.length} ingrédient${m.have.length > 1 ? 's' : ''} sur ${m.have.length + m.missing.length}`, `You have ${m.have.length} of ${m.have.length + m.missing.length} ingredients`)}
                       </div>
                       <div className="meter" aria-hidden>
                         <div style={{ width: `${pct}%` }} />
@@ -130,9 +131,9 @@ export default function Fridge() {
                   </a>
                   {m.missing.length > 0 && (
                     <div className="fridge-missing">
-                      <span className="muted small">Il manque : {m.missing.join(', ')}</span>
+                      <span className="muted small">{t('Il manque :', 'Missing:')} {m.missing.join(', ')}</span>
                       <button className="btn small-btn" onClick={() => addMissing(m.missing)}>
-                        Ajouter aux courses
+                        {t('Ajouter aux courses', 'Add to shopping list')}
                       </button>
                     </div>
                   )}

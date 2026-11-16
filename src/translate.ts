@@ -14,25 +14,25 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>
 }
 
-/** Vrai si le texte est en anglais. En cas de doute ou de traducteur absent : faux. */
-export async function isEnglish(text: string): Promise<boolean> {
+/** Langue du texte (« fr » ou « en »), ou null si autre, incertaine ou traducteur absent. */
+export async function detectLang(text: string): Promise<'fr' | 'en' | null> {
   const sample = text.slice(0, 600).trim()
-  if (sample.length < 12) return false
+  if (sample.length < 12) return null
   try {
     const [best] = await post<{ language: string; confidence: number }[]>('detect', { q: sample })
-    return best?.language === 'en' && best.confidence >= 50
+    return best && best.confidence >= 50 && (best.language === 'en' || best.language === 'fr') ? best.language : null
   } catch {
-    return false
+    return null
   }
 }
 
-async function translateMany(lines: string[]): Promise<string[]> {
+async function translateMany(lines: string[], source: 'fr' | 'en', target: 'fr' | 'en'): Promise<string[]> {
   const idx = lines.map((l, i) => (l.trim() ? i : -1)).filter((i) => i >= 0)
   if (!idx.length) return lines
   const { translatedText } = await post<{ translatedText: string[] }>('translate', {
     q: idx.map((i) => lines[i]),
-    source: 'en',
-    target: 'fr',
+    source,
+    target,
     format: 'text',
   })
   const out = [...lines]
@@ -103,7 +103,11 @@ export type TranslatableRecipe<R extends TranslatableRow> = { name: string; desc
 
 /** Traduit nom, étapes et ingrédients d'une recette anglaise. Les quantités sont
  *  converties (« 1 lb. » → « 450 g », « 2 Tbsp » → « 2 c. à soupe »), pas traduites. */
-export async function translateRecipe<R extends TranslatableRow, T extends TranslatableRecipe<R>>(r: T): Promise<T> {
+export async function translateRecipe<R extends TranslatableRow, T extends TranslatableRecipe<R>>(
+  r: T,
+  to: 'fr' | 'en' = 'fr',
+): Promise<T> {
+  if (to === 'en') return toEnglish(r)
   const steps = r.description.split('\n').map((l) => keepSpoons(l))
   const qty: string[] = []
   const notes: string[] = []
@@ -113,7 +117,7 @@ export async function translateRecipe<R extends TranslatableRow, T extends Trans
     notes.push(comma < 0 ? '' : it.description.slice(comma + 2))
   }
   const known = r.items.map((i) => GLOSSARY[i.name.trim().toLowerCase()])
-  const all = await translateMany([r.name, ...r.items.map((i, k) => (known[k] ? '' : i.name)), ...notes, ...steps])
+  const all = await translateMany([r.name, ...r.items.map((i, k) => (known[k] ? '' : i.name)), ...notes, ...steps], 'en', 'fr')
   const n = r.items.length
   const names = all.slice(1, 1 + n)
   const trNotes = all.slice(1 + n, 1 + 2 * n)
@@ -126,6 +130,27 @@ export async function translateRecipe<R extends TranslatableRow, T extends Trans
       name: known[k] ?? capitalize(names[k]),
       description: [qty[k], trNotes[k]].filter(Boolean).join(', '),
     })),
+  }
+}
+
+/** Français → anglais : on garde les mesures telles quelles (métriques), on traduit le reste. */
+async function toEnglish<R extends TranslatableRow, T extends TranslatableRecipe<R>>(r: T): Promise<T> {
+  const notes = r.items.map((it) => {
+    const comma = it.description.indexOf(', ')
+    return comma < 0 ? '' : it.description.slice(comma + 2)
+  })
+  const steps = r.description.split('\n')
+  const all = await translateMany([r.name, ...r.items.map((i) => i.name), ...notes, ...steps], 'fr', 'en')
+  const n = r.items.length
+  return {
+    ...r,
+    name: all[0],
+    description: all.slice(1 + 2 * n).join('\n'),
+    items: r.items.map((it, k) => {
+      const comma = it.description.indexOf(', ')
+      const qty = comma < 0 ? it.description : it.description.slice(0, comma)
+      return { ...it, name: capitalize(all[1 + k]), description: [qty, all[1 + n + k]].filter(Boolean).join(', ') }
+    }),
   }
 }
 

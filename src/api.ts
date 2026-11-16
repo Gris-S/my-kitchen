@@ -2,6 +2,8 @@
 // serveur de MY KITCHEN (nginx, ou Vite en développement) relaie vers
 // KitchenOwl en y ajoutant le jeton permanent : aucune connexion ici.
 
+import { t } from './i18n'
+
 export type Category = { id: number; name: string; ordering: number }
 export type Item = {
   id: number
@@ -53,12 +55,12 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch {
-    throw new ApiError('Le serveur KitchenOwl ne répond pas. Le NAS est-il allumé ?')
+    throw new ApiError(t('Le serveur KitchenOwl ne répond pas. Le NAS est-il allumé ?', 'The KitchenOwl server is not responding. Is it running?'))
   }
-  if (res.status === 401) throw new ApiError('KitchenOwl a refusé le jeton. Vérifie KITCHENOWL_TOKEN sur le NAS.')
+  if (res.status === 401) throw new ApiError(t('KitchenOwl a refusé le jeton. Vérifie KITCHENOWL_TOKEN sur le NAS.', 'KitchenOwl refused the token. Check KITCHENOWL_TOKEN on the server.'))
   if (!res.ok) {
     const text = (await res.text()).slice(0, 200)
-    throw new ApiError(`KitchenOwl a répondu une erreur ${res.status}${text ? ` : ${text}` : ''}`)
+    throw new ApiError(`${t('KitchenOwl a répondu une erreur', 'KitchenOwl returned an error')} ${res.status}${text ? `${t(' : ', ': ')}${text}` : ''}`)
   }
   return res.json() as Promise<T>
 }
@@ -105,10 +107,10 @@ export async function uploadPhoto(file: File): Promise<string> {
   try {
     res = await fetch('/api/upload', { method: 'POST', body })
   } catch {
-    throw new ApiError("La photo n'a pas pu être envoyée : le serveur ne répond pas.")
+    throw new ApiError(t("La photo n'a pas pu être envoyée : le serveur ne répond pas.", 'The photo could not be sent: the server is not responding.'))
   }
   const data = res.ok ? ((await res.json()) as { filename?: string }) : null
-  if (!data?.filename) throw new ApiError('KitchenOwl a refusé la photo (formats acceptés : JPG, PNG, WebP).')
+  if (!data?.filename) throw new ApiError(t('KitchenOwl a refusé la photo (formats acceptés : JPG, PNG, WebP).', 'KitchenOwl refused the photo (JPG, PNG or WebP only).'))
   return data.filename
 }
 

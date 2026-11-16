@@ -3,6 +3,7 @@ import { useApp } from '../App'
 import { api, photoUrl, type Planned, type Recipe } from '../api'
 import { dayLabel, localDayToUtc, toInput, utcToInput } from '../dates'
 import { usePolling } from '../usePolling'
+import { locale, t } from '../i18n'
 
 const nextDays = (n: number) =>
   Array.from({ length: n }, (_, i) => {
@@ -21,7 +22,7 @@ export default function Planning() {
     try {
       const [p, r] = await Promise.all([api.planner(hh), api.recipes(hh)])
       setPlanned(p)
-      setRecipes(r.sort((a, b) => a.name.localeCompare(b.name, 'fr')))
+      setRecipes(r.sort((a, b) => a.name.localeCompare(b.name, locale)))
     } catch (e) {
       notify((e as Error).message)
     }
@@ -52,8 +53,8 @@ export default function Planning() {
 
   return (
     <div className="page">
-      <h1>Planning</h1>
-      {planned === null && <p className="muted">Chargement…</p>}
+      <h1>{t('Planning', 'Planner')}</h1>
+      {planned === null && <p className="muted">{t('Chargement…', 'Loading…')}</p>}
       {planned &&
         days.map((day) => {
           const meals = planned.filter((p) => utcToInput(p.cooking_date) === day)
@@ -66,7 +67,7 @@ export default function Planning() {
                     {photoUrl(p.recipe.photo) && <img src={photoUrl(p.recipe.photo)!} alt="" />}
                     <span>{p.recipe.name}</span>
                   </a>
-                  <button className="icon-btn" onClick={() => remove(p)} aria-label={`Retirer ${p.recipe.name}`}>
+                  <button className="icon-btn" onClick={() => remove(p)} aria-label={`${t('Retirer', 'Remove')} ${p.recipe.name}`}>
                     ✕
                   </button>
                 </div>
@@ -78,10 +79,10 @@ export default function Planning() {
                     defaultValue=""
                     onChange={(e) => e.target.value && add(day, +e.target.value)}
                     onBlur={() => setAdding(null)}
-                    aria-label="Choisir une recette"
+                    aria-label={t('Choisir une recette', 'Choose a recipe')}
                   >
                     <option value="" disabled>
-                      Choisir une recette…
+                      {t('Choisir une recette…', 'Choose a recipe…')}
                     </option>
                     {recipes.map((r) => (
                       <option key={r.id} value={r.id}>
@@ -91,7 +92,7 @@ export default function Planning() {
                   </select>
                 ) : (
                   <button className="btn" onClick={() => setAdding(day)} disabled={!recipes.length}>
-                    ＋ Repas
+                    ＋ {t('Repas', 'Meal')}
                   </button>
                 )}
               </div>
@@ -100,14 +101,14 @@ export default function Planning() {
         })}
       {later.length > 0 && (
         <section className="card">
-          <h2 className="card-title">Autres jours</h2>
+          <h2 className="card-title">{t('Autres jours', 'Other days')}</h2>
           {later.map((p) => (
             <div key={`${p.recipe_id}-${p.cooking_date}`} className="row">
               <a className="row-main" href={`#/recette/${p.recipe_id}`}>
                 {p.recipe.name}
               </a>
               <span className="muted small">{p.cooking_date ? dayLabel(utcToInput(p.cooking_date)) : ''}</span>
-              <button className="icon-btn" onClick={() => remove(p)} aria-label={`Retirer ${p.recipe.name}`}>
+              <button className="icon-btn" onClick={() => remove(p)} aria-label={`${t('Retirer', 'Remove')} ${p.recipe.name}`}>
                 ✕
               </button>
             </div>
