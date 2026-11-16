@@ -13,6 +13,8 @@ const NICE: [number, string][] = [
 
 /** Écrit un nombre comme en cuisine : 1,5 → « 1 ½ », 0,25 → « ¼ », 413 g → 410 g. */
 export function formatQty(n: number, unit: string): string {
+  // Des pièces sans unité (« 3 » œufs) : pas de 4 ½ œufs, on arrondit à partir de 2.
+  if (/^\s*(?:,|$)/.test(unit) && n >= 2) return String(Math.round(n))
   if (/^\s*(?:g|ml)\b/.test(unit) && n >= 20) return String(Math.round(n / (n >= 100 ? 10 : 5)) * (n >= 100 ? 10 : 5))
   const whole = Math.floor(n)
   const frac = n - whole

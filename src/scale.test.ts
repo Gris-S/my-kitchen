@@ -11,6 +11,8 @@ test('masses et volumes', () => {
 test('pièces et cuillères', () => {
   expect(s('3', 2)).toBe('6')
   expect(s('3', 0.5)).toBe('1 ½')
+  expect(s('3', 1.5)).toBe('5') // 4,5 œufs → 5
+  expect(s('1', 1.5)).toBe('1 ½')
   expect(s('1 c. à soupe', 1.5)).toBe('1 ½ c. à soupe')
   expect(s('½ c. à café', 2)).toBe('1 c. à café')
   expect(s('1, émincé', 2)).toBe('2, émincé')
