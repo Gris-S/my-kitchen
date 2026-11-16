@@ -1,0 +1,8 @@
+node_modules
+dist
+.env*
+livraison
+docker-compose.yaml
+sauvegardes
+tsconfig.tsbuildinfo
+outils/nas.local

@@ -1,0 +1,108 @@
+# MY KITCHEN : sert l'interface, et relaie /api vers KitchenOwl en ajoutant le
+# jeton permanent. Le navigateur ne voit jamais le jeton et n'a plus de session
+# à garder : plus de connexion, plus de déconnexion.
+# ${KITCHENOWL_URL}, ${KITCHENOWL_TOKEN}, ${TRANSLATE_URL} et
+# ${NGINX_LOCAL_RESOLVERS} sont remplis au démarrage du conteneur.
+#
+# Sécurité : le jeton est celui d'un compte KitchenOwl (souvent administrateur).
+# Seules les adresses dont l'interface se sert sont donc relayées ; tout le
+# reste (comptes, mots de passe, jetons, export, suppression de foyer…) est
+# refusé ici, même pour quelqu'un qui écrirait ses propres requêtes.
+
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+    client_max_body_size 25m;          # photos
+
+    # Résolu à la demande : MY KITCHEN démarre même si le traducteur est absent.
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=30s ipv6=off;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    # Photos des sites de recettes (https) et photos envoyées (même serveur) ; aucun script extérieur.
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' https: data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" always;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Ce que l'interface utilise, et rien d'autre.
+    location ~ ^/api/(household|household/\d+/(recipe|recipe/scrape|item/search|planner|planner/recipe|planner/recipe/\d+)|shoppinglist/\d+/(items|recent-items|add-item-by-name|item|item/\d+|recipeitems)|recipe/\d+|upload|upload/[A-Za-z0-9._-]+)$ {
+        # La liste des foyers se lit, elle ne se modifie pas d'ici.
+        if ($request_uri ~ "^/api/household(\?|$)") { set $readonly 1; }
+        if ($request_method = GET) { set $readonly 0; }
+        if ($readonly = 1) { return 403; }
+
+        proxy_pass ${KITCHENOWL_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Authorization "Bearer ${KITCHENOWL_TOKEN}";
+        proxy_set_header Cookie "";
+        proxy_set_header Connection "";
+        proxy_hide_header X-Powered-By;
+        proxy_buffering off;               # l'import d'une recette peut prendre du temps
+        proxy_read_timeout 180s;
+    }
+
+    location /api/ {
+        return 403;
+    }
+
+    # Traducteur hors ligne (LibreTranslate) : détection de langue et traduction seulement.
+    location ~ ^/traduction/(translate|detect)$ {
+        limit_except POST { deny all; }
+        set $traducteur ${TRANSLATE_URL};
+        proxy_pass $traducteur/$1;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        client_max_body_size 1m;
+        proxy_read_timeout 120s;
+    }
+
+    # Photo d'un site de recettes qui refuse KitchenOwl (il bloque les robots) :
+    # MY KITCHEN la demande comme un navigateur, puis l'envoie lui-même à KitchenOwl.
+    # Limité aux images (jpg, png, webp) en HTTPS sur un vrai nom de domaine : pas
+    # d'adresse IP, pas de nom local, donc rien du réseau de la maison.
+    location ~ "^/photo-externe/([a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,})(/[^?]*\.(?:jpe?g|png|webp))$" {
+        limit_except GET { deny all; }
+        set $photo_host $1;
+        set $photo_path $2;
+        if ($photo_host ~* "(^|\.)(local|lan|home|internal|localdomain|box|localhost|freeboxos\.fr)$") { return 403; }
+        proxy_pass https://$photo_host$photo_path;
+        proxy_http_version 1.1;
+        proxy_pass_request_headers off;
+        proxy_set_header Host $photo_host;
+        proxy_set_header User-Agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
+        proxy_set_header Accept "image/avif,image/webp,image/*,*/*;q=0.8";
+        proxy_ssl_server_name on;
+        proxy_ssl_name $photo_host;
+        proxy_ssl_verify on;
+        proxy_ssl_verify_depth 4;
+        proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+        proxy_hide_header Set-Cookie;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 30s;
+        proxy_max_temp_file_size 20m;
+        add_header Content-Security-Policy "default-src 'none'" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        add_header Cache-Control "no-cache";
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header Content-Security-Policy "default-src 'self'; img-src 'self' https: data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" always;
+        try_files $uri /index.html;
+    }
+}
